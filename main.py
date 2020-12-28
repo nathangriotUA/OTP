@@ -7,6 +7,7 @@ random_dev = open("/dev/urandom", "rb")
 
 parser = argparse.ArgumentParser()
 parser.add_argument("directory", help = "directory name", type = str )
+parser.add_argument("-filename", help = "file name", type = str )
 parser.add_argument("-g", help = "generate pad files", action = "store_true")
 parser.add_argument("-s", help = "send a message", action = "store_true")
 parser.add_argument("-r", help = "receive a message", action = "store_true")
@@ -25,8 +26,7 @@ def text_to_bin(text):
 
     for char in chars:
         bin_char = bin(char)[2:].zfill(8)
-        bin_char = list(bin_char)
-        bins += bin_char
+        bins.append(bin_char)
 
     return bins
 
@@ -89,6 +89,8 @@ def transmission(message,directory_name):
                 dir_used = dir
                 file_used = filename
                 found = True
+            j += 1
+        i += 1
     
     if len(message) > 2000:
         SystemError("Message is too long")
@@ -106,12 +108,16 @@ def transmission(message,directory_name):
     datac = [datac[i : i + 8] for i in range(0, len(datac), 8)]
     f.close()
 
-    with open(directory_name+'/'+dir_used+"/"+file_used+"t", 'a') as f:
+    with open(directory_name+'-'+dir_used+"-"+file_used+"t", 'w') as f:
         for data in datap:
             f.write(str(data))
         
         for i, data in enumerate(message):
-            data = str(bin(int(data, 2) + int(datac[i] , 2))[2:]).zfill(9)
+            print(data)
+            a = int(data, 2)
+            b = int(datac[i] , 2)
+            c = a + b
+            data = bin(c)[2:].zfill(9)
             f.write(data)
         
         for data in datas:
@@ -123,7 +129,7 @@ def transmission(message,directory_name):
 
 
 
-def receive(file,directory_name):
+def receive(directory_name,file):
     ''' read file
         input:
             - file name
@@ -131,6 +137,46 @@ def receive(file,directory_name):
         output:
             - message 
      '''
+    i= 0
+    dir_used = ""
+    file_used = ""
+    found = False
+    f = open(file, "r")
+    datat = f.read()
+    datat = datat[:384]
+    f.close()
+    while i <= 9999 and found == False :
+        j = 0
+        while j <= 99 and found == False : 
+            dir = str(i).zfill(4)
+            filename = str(j).zfill(2)
+            f = open(directory_name+'/'+dir+"/"+filename+"p", "r")
+            datap = f.read()
+            f.close()
+            if datat == datap:
+                f = open(directory_name+'/'+dir+"/"+filename+"c", "r")
+                datac = f.read()
+                datac = [datac[i : i + 8] for i in range(0, len(datac), 8)]
+                dir_used = dir
+                file_used = filename
+                f.close()
+                found = True
+            j += 1
+        i += 1
+
+    f = open(file, "r")
+    datam = f.read()
+    datam = datam[384:-384]
+    datam = [datam[i : i + 9] for i in range(0, len(datam), 9)]
+
+    with open(directory_name+'-'+dir_used+"-"+file_used+"m", 'w') as f:
+        for i, data in enumerate(datam):
+            a = int(data, 2)
+            b = int(datac[i], 2)
+            c = a - b
+            print(a-b)
+            data = chr(c)
+            f.write(data)
     return 0
 
 def main():
@@ -149,7 +195,7 @@ def main():
         bins = text_to_bin(message)
         transmission(bins,args.directory)
     if args.r:
-        get_message(args.directory,filename)
+        receive(args.directory,args.filename)
 
 
 if __name__ == '__main__':
