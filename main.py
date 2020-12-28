@@ -76,6 +76,49 @@ def transmission(message,directory_name):
     output:
         - none
     '''
+    i= 0
+    dir_used = ""
+    file_used = ""
+    found = False
+    while i <= 9999 and found == False :
+        j = 0
+        while j <= 99 and found == False : 
+            dir = str(i).zfill(4)
+            filename = str(j).zfill(2)
+            if os.path.isfile(directory_name+'/'+dir+'/'+filename+"c"):
+                dir_used = dir
+                file_used = filename
+                found = True
+    
+    if len(message) > 2000:
+        SystemError("Message is too long")
+
+    f = open(directory_name+'/'+dir_used+"/"+file_used+"p", "r")
+    datap = f.read()
+    datap = [datap[i : i + 8] for i in range(0, len(datap), 8)]
+    f.close()
+    f = open(directory_name+'/'+dir_used+"/"+file_used+"s", "r")
+    datas = f.read()
+    datas = [datas[i : i + 8] for i in range(0, len(datas), 8)]
+    f.close()
+    f = open(directory_name+'/'+dir_used+"/"+file_used+"c", "r")
+    datac = f.read()
+    datac = [datac[i : i + 8] for i in range(0, len(datac), 8)]
+    f.close()
+
+    with open(directory_name+'/'+dir_used+"/"+file_used+"t", 'a') as f:
+        for data in datap:
+            f.write(str(data))
+        
+        for i, data in enumerate(message):
+            data = str(bin(int(data, 2) + int(datac[i] , 2))[2:]).zfill(9)
+            f.write(data)
+        
+        for data in datas:
+            f.write(str(data))
+
+    return 0
+
 
 
 
@@ -104,8 +147,9 @@ def main():
             message = input('Please write your message: ')
 
         bins = text_to_bin(message)
-        write(args.image, bins)
-        transmission(message,args.directory)
+        transmission(bins,args.directory)
+    if args.r:
+        get_message(args.directory,filename)
 
 
 if __name__ == '__main__':
