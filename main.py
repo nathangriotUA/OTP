@@ -8,11 +8,27 @@ random_dev = open("/dev/urandom", "rb")
 parser = argparse.ArgumentParser()
 parser.add_argument("directory", help = "directory name", type = str )
 parser.add_argument("-g", help = "generate pad files", action = "store_true")
-parser.add_argument("-r", help = "send a message", action = "store_true")
-parser.add_argument("-s", help = "receive a message", action = "store_true")
+parser.add_argument("-s", help = "send a message", action = "store_true")
+parser.add_argument("-r", help = "receive a message", action = "store_true")
 parser.add_argument("-f", help = "read message from file", type = str)
 parser.add_argument("-t", help = "read message from text", type = str)
 
+def text_to_bin(text):
+    ''' convert text into arrays of bins:
+        Input:
+            - text (str)
+        Ouput:
+            - Binary arrays
+    '''
+    chars = bytearray(text, "utf8")
+    bins = []
+
+    for char in chars:
+        bin_char = bin(char)[2:].zfill(8)
+        bin_char = list(bin_char)
+        bins += bin_char
+
+    return bins
 
 def generate_files(directory_name):
     ''' generate key files:
@@ -52,11 +68,44 @@ def generate_files(directory_name):
     random_dev.close()
         
 
+def transmission(message,directory_name):
+    ''' transmission it will take a message and encrypt it
+    input:
+        - message (str)
+        - directory name 
+    output:
+        - none
+    '''
+
+
+
+
+def receive(file,directory_name):
+    ''' read file
+        input:
+            - file name
+            - directory name
+        output:
+            - message 
+     '''
+    return 0
+
 def main():
     ''' Main function '''
     args = parser.parse_args()
     if args.g:
         generate_files(args.directory)
+    if args.s:
+        if args.t:
+            message = args.t
+        elif args.f:
+            message = readFromFile(args.f)
+        else:
+            message = input('Please write your message: ')
+
+        bins = text_to_bin(message)
+        write(args.image, bins)
+        transmission(message,args.directory)
 
 
 if __name__ == '__main__':
