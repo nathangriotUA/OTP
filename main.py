@@ -157,13 +157,13 @@ def transmission(message, directory_name):
 
 
 
-def receive(directory_name,file):
-    ''' read file
+def receive(directory_name, file):
+    ''' read file : this function writes a file with the message after processing
         input:
-            - file name
+            - file name 
             - directory name
         output:
-            - message 
+            - none 
      '''
     i = 0
     dir_used = ""
@@ -173,33 +173,41 @@ def receive(directory_name,file):
     datat = f.read()
     datat = datat[:384]
     f.close()
-    while i <= 9999 and found == False :
-        j = 0
-        while j <= 99 and found == False : 
-            dir = str(i).zfill(4)
-            filename = str(j).zfill(2)
-            f = open(directory_name + '/' + dir + "/" + filename + "p", "r")
-            datap = f.read()
-            f.close()
-            if datat == datap:
-                # pad found so we delete it
-                os.remove(directory_name + '/' + dir + "/" + filename + "p")
-                f = open(directory_name + '/' + dir + "/"+ filename + "c", "r")
-                datac = f.read()
-                datac = [datac[i : i + 8] for i in range(0, len(datac), 8)]
-                dir_used = dir
-                file_used = filename
-                f.close()
-                # transimission recovered so we delete it
-                os.remove(directory_name + '/' + dir + "/" + filename + "c")
-                found = True
-            j += 1
-        i += 1
+    if os.path.isfile(directory_name):
+        while i <= 9999 and found == False :
+            j = 0
+            while j <= 99 and found == False : 
+                dir = str(i).zfill(4)
+                filename = str(j).zfill(2)
+                if os.path.isfile(directory_name + '/' + dir + "/" + filename + "p"):
+                    f = open(directory_name + '/' + dir + "/" + filename + "p", "r")
+                    datap = f.read()
+                    f.close()
+                    if datat == datap:
+                        # pad found so we delete it
+                        os.remove(directory_name + '/' + dir + "/" + filename + "p")
+                        f = open(directory_name + '/' + dir + "/"+ filename + "c", "r")
+                        datac = f.read()
+                        datac = [datac[i : i + 8] for i in range(0, len(datac), 8)]
+                        dir_used = dir
+                        file_used = filename
+                        f.close()
+                        # transimission recovered so we delete it
+                        os.remove(directory_name + '/' + dir + "/" + filename + "c")
+                        found = True
+                j += 1
+            i += 1
+    else:
+        print("This directory does not exist")
+        return 0
 
+    if found == False:
+        print("Impossible to find the right file for this message")
+        return 0
 
     f = open(file, "r")
     datam = f.read()
-    datam = datam[384:-384]
+    datam = datam[384 :- 384]
     datam = [datam[i : i + 9] for i in range(0, len(datam), 9)]
 
     with open(directory_name + '-' + dir_used + "-" + file_used + "m", 'w') as f:
