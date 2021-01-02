@@ -11,3 +11,5 @@ In order to use it there are 3 modes:
 
 
 This toolkit checks if you are connected to the internet. If you are the toolkit wont work, this is made to protect the content of your message. 
+
+Urandom was used instead of random because random takes way too much time to generate. Since there are a lot of data to generate urandom was necessary.
