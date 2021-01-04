@@ -2,6 +2,7 @@ import argparse
 import subprocess
 import os
 import socket
+import sys
 
 random_dev = open("/dev/urandom", "rb")
 
@@ -70,24 +71,25 @@ def generate_files(directory_name):
             break
         i += 1
 
-    for i in range(100):        
-        data_p = [bin(int.from_bytes(random_dev.read(1), 'big'))[2:].zfill(8) for i in range(48)]
-        data_s = [bin(int.from_bytes(random_dev.read(1), 'big'))[2:].zfill(8) for i in range(48)]
-        data_c = [bin(int.from_bytes(random_dev.read(1), 'big'))[2:].zfill(8) for i in range(2000)]
+    if created:
+        for i in range(100):        
+            data_p = [bin(int.from_bytes(random_dev.read(1), 'big'))[2:].zfill(8) for i in range(48)]
+            data_s = [bin(int.from_bytes(random_dev.read(1), 'big'))[2:].zfill(8) for i in range(48)]
+            data_c = [bin(int.from_bytes(random_dev.read(1), 'big'))[2:].zfill(8) for i in range(2000)]
 
-        cur_file = str(i).zfill(2)
-        with open(directory_name + '/' + dir_name + "/" + cur_file + "p", 'w') as f:
-            for random_bits in data_p:
-                f.write(str(random_bits))
-        with open(directory_name + '/' + dir_name + "/" + cur_file + "s", 'w') as f:
-            for random_bits in data_s:
-                f.write(str(random_bits))
-        with open(directory_name + '/' + dir_name + "/" + cur_file + "c", 'w') as f:
-            for random_bits in data_c:
-                f.write(str(random_bits))
+            cur_file = str(i).zfill(2)
+            with open(directory_name + '/' + dir_name + "/" + cur_file + "p", 'w') as f:
+                for random_bits in data_p:
+                    f.write(str(random_bits))
+            with open(directory_name + '/' + dir_name + "/" + cur_file + "s", 'w') as f:
+                for random_bits in data_s:
+                    f.write(str(random_bits))
+            with open(directory_name + '/' + dir_name + "/" + cur_file + "c", 'w') as f:
+                for random_bits in data_c:
+                    f.write(str(random_bits))
 
-    subprocess.call('cp -r ./' + directory_name + '/* ./' + directory_name + '_receiver/', shell=True)
-    random_dev.close()
+        subprocess.call('cp -r ./' + directory_name + '/* ./' + directory_name + '_receiver/', shell=True)
+        random_dev.close()
         
 
 def transmission(message, directory_name):
@@ -120,7 +122,7 @@ def transmission(message, directory_name):
         return 0
 
     if len(message) > 2000:
-        SystemError("Message is too long")
+        sys.exit("Message is too long")
 
     f = open(directory_name + '/' + dir_used + "/" + file_used + "p", "r")
     datap = f.read()
@@ -150,7 +152,7 @@ def transmission(message, directory_name):
         for data in datas:
             f.write(str(data))
 
-    os.remove(directory_name+'/'+dir_used+"/"+file_used+"c") # remove file after writing the message
+    subprocess.call("shred --remove " + directory_name+'/'+dir_used+"/"+file_used+"c", shell = True)
     return 0
 
 
@@ -184,7 +186,7 @@ def receive(directory_name, file):
                 f.close()
                 if datat == datap:
                     # pad found so we delete it
-                    os.remove(directory_name + '/' + dir + "/" + filename + "p")
+                    subprocess.call("shred --remove " + directory_name + '/' + dir + "/" + filename + "p", shell = True)
                     f = open(directory_name + '/' + dir + "/"+ filename + "c", "r")
                     datac = f.read()
                     datac = [datac[i : i + 8] for i in range(0, len(datac), 8)]
@@ -192,7 +194,7 @@ def receive(directory_name, file):
                     file_used = filename
                     f.close()
                     # transimission recovered so we delete it
-                    os.remove(directory_name + '/' + dir + "/" + filename + "c")
+                    subprocess.call("shred --remove " + directory_name + '/' + dir + "/" + filename + "c", shell = True)
                     found = True
             j += 1
         i += 1
@@ -220,14 +222,14 @@ def main():
     ''' Main function '''
     
     try :
-        socket.create_connection(("1.1.1.1", 80))
-        print("currently connected to the internet, unable to continue")
+        socket.create_connection(("1.1.1.1", 53))
+        print("please disconnect from the internet")
         return 0
     except :
         print("not connected to the internet, able to continue")
 
     args = parser.parse_args()
-    if args.g:
+    if (not args.s and not args.r) or args.g:
         generate_files(args.directory)
     if args.s:
         if args.t:
