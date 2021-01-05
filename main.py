@@ -1,7 +1,6 @@
 import argparse
 import subprocess
 import os
-import socket
 import sys
 
 random_dev = open("/dev/urandom", "rb")
@@ -221,14 +220,27 @@ def receive(directory_name, file):
 def main():
     ''' Main function '''
     
-    try :
-        socket.create_connection(("1.1.1.1", 53))
-        print("please disconnect from the internet")
-        return 0
-    except :
-        print("not connected to the internet, able to continue")
-
+    #try :
+    #    socket.create_connection(("1.1.1.1", 53))
+    #    print("please disconnect from the internet")
+    #    return 0
+    #except :
+    #    print("not connected to the internet, able to continue")
+    
+    # get interfaces 
     args = parser.parse_args()
+    current_dir = "/sys/class/net/"
+    sub_dirs = [x[1] for x in os.walk(current_dir)]
+
+    for sub_dir in sub_dirs[0]:
+        file = open(current_dir+sub_dir+"/operstate", "r")
+        text = file.read()
+        file.close()
+        if "up" in text:
+            print("connected to the internet. Please disconnect")
+            return 0
+
+
     if (not args.s and not args.r) or args.g:
         generate_files(args.directory)
     if args.s:
