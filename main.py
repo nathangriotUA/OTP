@@ -7,7 +7,7 @@ random_dev = open("/dev/urandom", "rb")
 
 parser = argparse.ArgumentParser()
 parser.add_argument("directory", help = "directory name", type = str )
-parser.add_argument("-filename", help = "file name", type = str )
+parser.add_argument("filename", nargs="?", help = "file name", type = str )
 parser.add_argument("-g", help = "generate pad files", action = "store_true")
 parser.add_argument("-s", help = "send a message", action = "store_true")
 parser.add_argument("-r", help = "receive a message", action = "store_true")
@@ -54,23 +54,23 @@ def generate_files(directory_name):
     try:
         os.mkdir(directory_name)
         os.mkdir(directory_name + "_receiver")
-    except OSError:
-            print ("unable to create directory")
+    except :
+        print ("unable to create directory")
 
 
     created = False
-    while i <= 9999:
+    while i <= 9999 :
         dir_name = str(i).zfill(4)
-        try:
+        try :
             os.mkdir(directory_name + "/" + dir_name)
             created = True
-        except OSError:
-            print (dir_name + " not available")
-        if created:
+        except :
+            pass
+        if created :
             break
         i += 1
 
-    if created:
+    if created :
         for i in range(100):        
             data_p = [bin(int.from_bytes(random_dev.read(1), 'big'))[2:].zfill(8) for i in range(48)]
             data_s = [bin(int.from_bytes(random_dev.read(1), 'big'))[2:].zfill(8) for i in range(48)]
@@ -78,13 +78,13 @@ def generate_files(directory_name):
 
             cur_file = str(i).zfill(2)
             with open(directory_name + '/' + dir_name + "/" + cur_file + "p", 'w') as f:
-                for random_bits in data_p:
+                for random_bits in data_p :
                     f.write(str(random_bits))
             with open(directory_name + '/' + dir_name + "/" + cur_file + "s", 'w') as f:
-                for random_bits in data_s:
+                for random_bits in data_s :
                     f.write(str(random_bits))
             with open(directory_name + '/' + dir_name + "/" + cur_file + "c", 'w') as f:
-                for random_bits in data_c:
+                for random_bits in data_c :
                     f.write(str(random_bits))
 
         subprocess.call('cp -r ./' + directory_name + '/* ./' + directory_name + '_receiver/', shell=True)
@@ -141,7 +141,6 @@ def transmission(message, directory_name):
             f.write(str(data))
         
         for i, data in enumerate(message):
-            print(data)
             a = int(data, 2)
             b = int(datac[i], 2)
             c = a + b
@@ -152,6 +151,7 @@ def transmission(message, directory_name):
             f.write(str(data))
 
     subprocess.call("shred --remove " + directory_name+'/'+dir_used+"/"+file_used+"c", shell = True)
+
     return 0
 
 
@@ -170,8 +170,13 @@ def receive(directory_name, file):
     dir_used = ""
     file_used = ""
     found = False
-    f = open(file, "r")
-    datat = f.read()
+    try :
+        f = open(file, "r")
+        datat = f.read()
+    except :
+        print("error file not found")
+        return 0
+
     datat = datat[:384]
     f.close()
     while i <= 9999 and found == False :
@@ -186,15 +191,20 @@ def receive(directory_name, file):
                 if datat == datap:
                     # pad found so we delete it
                     subprocess.call("shred --remove " + directory_name + '/' + dir + "/" + filename + "p", shell = True)
-                    f = open(directory_name + '/' + dir + "/"+ filename + "c", "r")
-                    datac = f.read()
-                    datac = [datac[i : i + 8] for i in range(0, len(datac), 8)]
-                    dir_used = dir
-                    file_used = filename
-                    f.close()
-                    # transimission recovered so we delete it
-                    subprocess.call("shred --remove " + directory_name + '/' + dir + "/" + filename + "c", shell = True)
-                    found = True
+                    try:
+                        f = open(directory_name + '/' + dir + "/"+ filename + "c", "r")
+                        datac = f.read()
+                        datac = [datac[i : i + 8] for i in range(0, len(datac), 8)]
+                        dir_used = dir
+                        file_used = filename
+                        f.close()
+                        # transimission recovered so we delete it
+                        subprocess.call("shred --remove " + directory_name + '/' + dir + "/" + filename + "c", shell = True)
+                        found = True
+
+                    except :
+                        print("Wrong directory")
+                        return 0
             j += 1
         i += 1
 
@@ -206,27 +216,21 @@ def receive(directory_name, file):
     datam = f.read()
     datam = datam[384 :- 384]
     datam = [datam[i : i + 9] for i in range(0, len(datam), 9)]
+    f.close()
 
     with open(directory_name + '-' + dir_used + "-" + file_used + "m", 'w') as f:
         for i, data in enumerate(datam):
             a = int(data, 2)
             b = int(datac[i], 2)
             c = a - b
-            print(a - b)
             data = chr(c)
             f.write(data)
+
     return 0
 
 def main():
     ''' Main function '''
-    
-    #try :
-    #    socket.create_connection(("1.1.1.1", 53))
-    #    print("please disconnect from the internet")
-    #    return 0
-    #except :
-    #    print("not connected to the internet, able to continue")
-    
+
     # get interfaces 
     args = parser.parse_args()
     current_dir = "/sys/class/net/"
@@ -254,7 +258,10 @@ def main():
         bins = text_to_bin(message)
         transmission(bins,args.directory)
     if args.r:
-        receive(args.directory,args.filename)
+        if args.filename:
+            receive(args.directory,args.filename)
+        else:
+            print("error no file specified")
 
 
 if __name__ == '__main__':
